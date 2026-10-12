@@ -1,9 +1,9 @@
-# ferro-f1 - Implementation Plan (Phase 1)
+# f1interm - Implementation Plan (Phase 1)
 
 ## Project Initialized
-- Rust project `ferro-f1` v0.1.0, edition 2021
+- Rust project `f1interm` v0.1.0, edition 2021
 - Dependencies: color-eyre, tracing, clap, tokio, tokio-util, futures, async-trait, ratatui 0.25, crossterm 0.27, serde, serde_json, chrono, rand 0.8
-- Project structure established in `/Users/ravishankarkullaiah/f1interm/ferro-f1/`
+- Project structure established in `/Users/ravishankarkullaiah/f1interm/f1interm/`
 
 ## Phase 1 Status: COMPLETE
 
@@ -18,7 +18,7 @@
 6. **app.rs** - `App` struct with `run()` method, `select!` loop over render tick + input + feed channel, key handling
 7. **ui.rs** - Basic TUI draw function with layout tiers and placeholder widgets
 8. **cli.rs** - CLI args: `--live`, `--mock`, `--quit`
-9. **Test criteria met** - Binary compiles and runs; `ferro-f1 --help` works; `ferro-f1 --mock` runs; `ferro-f1 --quit` exits cleanly
+9. **Test criteria met** - Binary compiles and runs; `f1interm --help` works; `f1interm --mock` runs; `f1interm --quit` exits cleanly
 
 ### Exit criteria verified:
 - Mock race runs correctly
