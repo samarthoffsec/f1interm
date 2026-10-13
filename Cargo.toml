@@ -13,3 +13,16 @@ tokio-util = "0.7"
 futures = "0.3"
 async-trait = "0.1"
 rand = "0.8"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
+opt-level = 3
+
+[profile.dev]
+opt-level = "z"
+overflow-checks = true
+
+[dev-dependencies]
+criterion = "0.3"

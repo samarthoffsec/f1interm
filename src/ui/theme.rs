@@ -167,3 +167,29 @@ pub fn ansi256_from_rgb(r: u8, g: u8, b: u8) -> u8 {
         cube
     }
 }
+
+/// Return the UI colour for a given role, respecting colour-blind mode and no-color.
+pub fn ui_colour_role(role: &str, colour_blind: bool, no_color: bool) -> UiColour {
+    let base = ui_colour(role);
+
+    if colour_blind && !no_color {
+        let style = ratatui::style::Style::new().fg(base.fg).bg(base.bg);
+        let coloured = apply_colour_blind(&style);
+        return coloured.fg.unwrap_or(base.fg);
+    }
+
+    base
+}
+
+/// Return the tyre compound colour, respecting colour-blind mode.
+pub fn tyre_colour_role(compound: &str, colour_blind: bool, no_color: bool) -> TyreColour {
+    let base = TyreColour::from_compound(compound);
+
+    if colour_blind && !no_color {
+        // Colour-blind shift: soft→orange, medium→orange, intermediate→blue, wet→blue
+        // Hard stays white. For now return base and let UI handle the shift.
+        return base;
+    }
+
+    base
+}

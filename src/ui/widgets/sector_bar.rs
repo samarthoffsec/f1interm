@@ -5,11 +5,14 @@ use ratatui::{
     widgets::{Paragraph, Block},
 };
 
-/// A sector time bar showing S1/S2/S3 bars with colours (purple/green/yellow)
-/// and best lap time beside.
-///
-/// Renders like: `▇▇▇ 1:24.8` where the three blocks represent S1, S2, S3
-/// and the time is the best lap (or last lap).
+/** A sector time bar showing S1/S2/S3 bars with colours (purple/green/yellow)
+ * and best lap time beside.
+ *
+ * Renders like: `▇▇▇ 1:24.8` where the three blocks represent S1, S2, S3
+ * and the time is the best lap (or last lap).
+ *
+ * In ASCII mode, block elements are replaced with `_`, `-`, `|` characters.
+ */
 #[derive(Debug, Clone)]
 pub struct SectorBar {
     s1: f32,   // sector 1 time in seconds
@@ -18,10 +21,11 @@ pub struct SectorBar {
     best: f32, // best lap time in seconds
     show_times: bool,
     style: Style,
+    ascii_mode: bool,
 }
 
 impl SectorBar {
-    pub fn new(s1: f32, s2: f32, s3: f32, best: f32, show_times: bool, style: Style) -> Self {
+    pub fn new(s1: f32, s2: f32, s3: f32, best: f32, show_times: bool, style: Style, ascii_mode: bool) -> Self {
         Self {
             s1,
             s2,
@@ -29,6 +33,7 @@ impl SectorBar {
             best,
             show_times,
             style,
+            ascii_mode,
         }
     }
 
@@ -58,7 +63,12 @@ impl SectorBar {
         };
 
         // Map each sector to a bar length (0-7 blocks)
-        const BLOCKS: &[char] = &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+        // ASCII block chars: _ - ▁▂▃▄▅▇# or Unicode ▁▂▃▄▅▆▇█
+        const BLOCKS: &[char] = if self.ascii_mode {
+            &['_', '-', '▁', '▂', '▃', '▄', '▅', '#']
+        } else {
+            &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+        };
 
         let bar_width = usable_width.saturating_sub(10); // leave room for time text
         let bar_per_sec = bar_width as f32 / 7.0;
@@ -159,6 +169,7 @@ impl Default for SectorBar {
             best: 0.0,
             show_times: true,
             style: ratatui::style::Style::default(),
+            ascii_mode: false,
         }
     }
 }

@@ -178,10 +178,22 @@ impl App {
                 self.dirty = true;
             }
 
-            // Team colour toggle: t key
+            // Team colour / colour-blind toggle: t key
             crossterm::event::KeyCode::Char('t') => {
                 // Toggle colour blind mode
                 self.ui.colour_blind = !self.ui.colour_blind;
+                self.dirty = true;
+            }
+
+            // ASCII mode toggle: z key
+            crossterm::event::KeyCode::Char('z') => {
+                self.cfg.ascii_mode = !self.cfg.ascii_mode;
+                self.dirty = true;
+            }
+
+            // ASCII mode toggle: z key
+            crossterm::event::KeyCode::Char('z') => {
+                self.cfg.ascii_mode = !self.cfg.ascii_mode;
                 self.dirty = true;
             }
 
@@ -259,7 +271,7 @@ impl App {
                 _ = render_tick.tick() => {
                     if self.dirty {
                         terminal.draw(|f| {
-                            ui::draw(f, &self);
+                            ui::draw(f, &self, self.cfg.no_color, self.cfg.ascii_mode)?;
                             render_footer(f, f.area(), &self.ui);
                         })?;
                         self.dirty = false;

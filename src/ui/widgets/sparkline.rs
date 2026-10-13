@@ -10,6 +10,9 @@ use ratatui::{
  * Renders a compact sparkline sparkline for a sequence of f32 values.
  * The Y-axis is auto-scaled to the min/max of the data, or clamped if
  * fixed_min/fixed_max are Some.
+ *
+ * When `ascii_mode` is enabled, the block elements are replaced with
+ * ASCII alternatives for terminals without Braille support.
  */
 #[derive(Debug, Clone)]
 pub struct Sparkline {
@@ -17,10 +20,11 @@ pub struct Sparkline {
     fixed_min: Option<f32>,
     fixed_max: Option<f32>,
     style: Style,
+    ascii_mode: bool,
 }
 
 impl Sparkline {
-    pub fn new(data: &[f32], style: Style) -> Self {
+    pub fn new(data: &[f32], style: Style, ascii_mode: bool) -> Self {
         let fixed_min = None;
         let fixed_max = None;
         Self {
@@ -28,15 +32,17 @@ impl Sparkline {
             fixed_min,
             fixed_max,
             style,
+            ascii_mode,
         }
     }
 
-    pub fn with_range(data: &[f32], min: f32, max: f32, style: Style) -> Self {
+    pub fn with_range(data: &[f32], min: f32, max: f32, style: Style, ascii_mode: bool) -> Self {
         Self {
             data: data.to_vec(),
             fixed_min: Some(min),
             fixed_max: Some(max),
             style,
+            ascii_mode,
         }
     }
 
@@ -66,7 +72,12 @@ impl Sparkline {
         };
 
         // Block element levels: ▁▂▃▄▅▆▇█ (0-7)
-        const LEVELS: &[char] = &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+        // ASCII fallback: ▁▂▃▄▅▆▇# for compatibility
+        const LEVELS: &[char] = if self.ascii_mode {
+            &['_', '-', '▁', '▂', '▃', '▄', '▅', '#']
+        } else {
+            &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+        };
 
         let range = (max - min).max(1.0);
 
@@ -91,19 +102,8 @@ impl Sparkline {
 
         let paragraph = ratatui::widgets::Paragraph::new(output)
             .style(self.style)
-            .alignment(ratatui::layout::Alignment::Right);
+            .alignment(ratatui::layout::Alignment::Left);
         f.render_widget(paragraph, area);
-    }
-}
-
-impl Default for Sparkline {
-    fn default() -> Self {
-        Self {
-            data: vec![0.0],
-            fixed_min: None,
-            fixed_max: None,
-            style: ratatui::style::Style::default(),
-        }
     }
 }
 

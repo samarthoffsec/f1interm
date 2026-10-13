@@ -9,6 +9,8 @@ pub struct Config {
     pub units: String,
     pub timezone: String,
     pub log_level: String,
+    pub no_color: bool,
+    pub ascii_mode: bool,
 }
 
 impl Config {
@@ -18,6 +20,12 @@ impl Config {
         // CLI flags override env
         if cli.openf1_token != "" {
             cfg.openf1_token = cli.openf1_token.clone();
+        }
+        if cli.no_color {
+            cfg.no_color = true;
+        }
+        if cli.ascii_mode {
+            cfg.ascii_mode = true;
         }
 
         // Config file path: ~/.config/f1interm/config.toml (fallback to current dir)
@@ -42,6 +50,8 @@ impl Config {
             units: "metric".to_string(),
             timezone: "UTC".to_string(),
             log_level: std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string()),
+            no_color: std::env::var("NO_COLOR").is_ok(),
+            ascii_mode: std::env::var("F1INTERM_ASCII").is_ok(),
         })
     }
 
@@ -63,6 +73,12 @@ impl Config {
         }
         if let Some(v) = val.get("log_level") {
             cfg.log_level = v.as_str().unwrap_or("info").to_string();
+        }
+        if let Some(v) = val.get("no_color") {
+            cfg.no_color = v.as_bool().unwrap_or(false);
+        }
+        if let Some(v) = val.get("ascii_mode") {
+            cfg.ascii_mode = v.as_bool().unwrap_or(false);
         }
     }
 }

@@ -4,10 +4,15 @@ use ratatui::{
     Frame,
 };
 
-/// A custom Braille graph widget using 2×4 (8-level) sub-cell resolution.
-///
-/// Each Braille cell covers 2 columns × 4 rows (8 vertical dot positions).
-/// We map f32 values to one of 8 heights, rendering across the available width.
+/**
+ * A custom Braille graph widget using 2×4 (8-level) sub-cell resolution.
+ *
+ * Each Braille cell covers 2 columns × 4 rows (8 vertical dot positions).
+ * We map f32 values to one of 8 heights, rendering across the available width.
+ *
+ * When `ascii_mode` is enabled, Braille characters are replaced with
+ * ASCII alternatives (`#`, `+`, `-`, `|`) for terminals without Braille support.
+ */
 #[derive(Debug, Clone)]
 pub struct BrailleGraph {
     /// Normalized data values in [0, 1] range
@@ -16,10 +21,12 @@ pub struct BrailleGraph {
     max_height: usize,
     /// Whether to show a border around the graph area
     show_border: bool,
+    /// Whether to render using ASCII characters instead of Braille
+    ascii_mode: bool,
 }
 
 impl BrailleGraph {
-    pub fn new(data: &[f32], max_height: usize, show_border: bool) -> Self {
+    pub fn new(data: &[f32], max_height: usize, show_border: bool, ascii_mode: bool) -> Self {
         let data_norm = if data.is_empty() {
             vec![0.0]
         } else {
@@ -37,6 +44,7 @@ impl BrailleGraph {
             data: data_norm,
             max_height,
             show_border,
+            ascii_mode,
         }
     }
 
@@ -50,24 +58,21 @@ impl BrailleGraph {
             return;
         }
 
-        // Braille patterns for 8 vertical levels (2x4 dot grid)
-        // Bit 0 = bottom dot, Bit 3 = top dot
-        // We render from bottom-up: level 0 (0001) = only bottom dot, level 7 (1111) = full
-        const BRAILLE: [char; 8] = ['⠀', '⠁', '⠃', '⠉', '⠋', '⠪', '⠫', '⠻'];
-        // Actually let's use the full block characters that ratatui typically uses
-        // For 2x4 Braille: dots-1-2-3-4 pattern
-        // Using unicode braille patterns U+2800..U+28FF
-        // Pattern: 1=bottom, 2=up, 3=left, 4=top (in 2x4 grid)
-        // Actually the standard braille set:
-        // ⠀ U+2800 = 00000000
-        // ⠁ U+2801 = 00000001 (bottom)
-        // ⠃ U+2803 = 00000011 (bottom+next)
-        // etc.
-        // Let's use a simpler approach with the shaded block characters
-
         // Calculate step per value cell
         let cell_width = 2; // 2 columns per braille char
         let cell_height_rows = usable_height;
+
+        // Prepare character sets
+        let (braille_chars, ascii_chars) = if self.ascii_mode {
+            // ASCII fallback: use block elements for visual density
+            // Level 0: space, Level 1: |, Level 2: -, Level 3: |, Level 4: -, Level 5: #, Level 6: #, Level 7: full block
+            (vec![' ', '|', '-', '|', '-', '#', '#', '█'], vec![' ', '|', '-', '|', '-', '#', '#', '█'])
+        } else {
+            // Braille patterns for 8 vertical levels (2x4 dot grid)
+            // Bit 0 = bottom dot
+            const BRAILLE: [char; 8] = ['⠀', '⠁', '⠃', '⠉', '⠋', '⠪', '⠫', '⠻'];
+            (BRAILLE, BRAILLE)
+        };
 
         // We'll render row by row from top to bottom
         let mut output_lines: Vec<String> = Vec::new();
@@ -76,12 +81,7 @@ impl BrailleGraph {
             let mut line = String::new();
             let mut chars_rendered = 0usize;
 
-            // Each braille char represents 2 columns and effectively 8 vertical levels
-            // We need to figure out which dots are "on" for this row
-            // In a 2x4 braille cell, row 0 is bottom, row 3 is top
-            // But we're rendering top-down in the terminal, so row_idx=0 is the top visual row
-
-            let mut braille_chars: Vec<char> = Vec::new();
+            let mut char_chars: Vec<char> = Vec::new();
 
             // Process data in pairs (each braille char takes 2 columns)
             for chunk in self.data.chunks(2) {
@@ -95,18 +95,19 @@ impl BrailleGraph {
 
                 // Map [0,1] to braille level 0-7
                 let level = (avg * 7.0).min(7.0).max(0.0) as usize;
-                braille_chars.push(BRAILLE[level]);
+                char_chars.push(braille_chars[level]);
                 chars_rendered += cell_width;
             }
 
-            // If we have remaining space, fill with empty braille
+            // If we have remaining space, fill with empty chars
             while chars_rendered < usable_width {
-                braille_chars.push('⠀');
+                char_chars.push(if self.ascii_mode { ' ' } else { '⠀' });
                 chars_rendered += cell_width;
             }
 
             // Truncate to fit area width
-            let line_str: String = braille_chars.into_iter().take(usable_width / cell_width).collect();
+            let n_chars = usable_width / cell_width;
+            let line_str: String = char_chars.into_iter().take(n_chars).collect();
             output_lines.push(line_str);
         }
 
@@ -123,6 +124,17 @@ impl BrailleGraph {
                 ratatui::widgets::Block::default()
             });
         f.render_widget(paragraph, area);
+    }
+}
+
+impl Default for BrailleGraph {
+    fn default() -> Self {
+        Self {
+            data: vec![0.0],
+            max_height: 4,
+            show_border: true,
+            ascii_mode: false,
+        }
     }
 }
 

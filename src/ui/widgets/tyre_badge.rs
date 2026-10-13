@@ -5,16 +5,20 @@ use ratatui::{
     widgets::{Paragraph, Block},
 };
 
-/// A tyre compound badge showing `[S]`, `[M]`, `[H]`, `[I]`, `[W]` with optional age.
-///
-/// Renders like: `[M]12` where M is the compound and 12 is the age in laps.
-/// The compound letter is shown in the tyre's colour; the age is dim.
+/** A tyre compound badge showing `[S]`, `[M]`, `[H]`, `[I]`, `[W]` with optional age.
+ *
+ * Renders like: `[M]12` where M is the compound and 12 is the age in laps.
+ * The compound letter is shown in the tyre's colour; the age is dim.
+ *
+ * In ASCII mode, the bracket pattern is simplified to `(M)12` for monospace compatibility.
+ */
 #[derive(Debug, Clone)]
 pub struct TyreBadge {
     compound: String,
     age: u16,
     max_age: u16,
     style: Style,
+    ascii_mode: bool,
 }
 
 impl TyreBadge {
@@ -22,13 +26,15 @@ impl TyreBadge {
     /// `compound` should be one of: "S", "M", "H", "I", "W" (case-insensitive)
     /// `age` is the current tyre age in laps
     /// `max_age` is the maximum laps before pit stop
-    pub fn new(compound: &str, age: u16, max_age: u16, style: Style) -> Self {
+    /// `ascii_mode` renders simplified brackets in ASCII mode
+    pub fn new(compound: &str, age: u16, max_age: u16, style: Style, ascii_mode: bool) -> Self {
         let compound_upper = compound.to_uppercase();
         Self {
             compound: compound_upper,
             age,
             max_age,
             style,
+            ascii_mode,
         }
     }
 
@@ -62,7 +68,13 @@ impl TyreBadge {
             String::new()
         };
 
-        // Build badge: [CHAR]age or [CHAR] if no age, with age capped at max_age
+        // Build badge: in ASCII mode use (CHAR)age, otherwise [CHAR]age
+        let (badge_brackets, open_bracket) = if self.ascii_mode {
+            ("(", compound_char)
+        } else {
+            ("[", compound_char)
+        };
+
         let display_age = if self.age > self.max_age {
             format!("{}*", self.max_age)
         } else {
@@ -70,9 +82,9 @@ impl TyreBadge {
         };
 
         let final_text = if !display_age.is_empty() {
-            format!("[{}]{}", compound_char, display_age)
+            format!("{}{}{}", open_bracket, compound_char, display_age)
         } else {
-            format!("[{}]", compound_char)
+            format!("{}{}", open_bracket, compound_char)
         };
 
         let paragraph = Paragraph::new(final_text)
@@ -88,6 +100,7 @@ impl Default for TyreBadge {
             age: 0,
             max_age: 20,
             style: ratatui::style::Style::default(),
+            ascii_mode: false,
         }
     }
 }
